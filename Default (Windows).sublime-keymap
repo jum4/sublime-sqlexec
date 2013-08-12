@@ -1,0 +1,4 @@
+[  
+    { "keys": ["ctrl+e"], "command": "sql_exec" },
+    { "keys": ["ctrl+shift+e"], "command": "sql_exec_file" }
+]
