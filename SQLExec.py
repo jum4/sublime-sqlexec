@@ -60,7 +60,6 @@ def getSqlCommand(view, sql):
         tempFile.close()    
         cmd = "sqlplus -S %s/%s@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%d)))(CONNECT_DATA=(SERVICE_NAME=%s))) < \"%s\" > \"%s\""
         cmd = cmd % ( options['user'], options['password'], options['host'], options['port'], options['database'], getTempFileName(), resultFilename)
-        print cmd
     return cmd
 
 def fileIsEmpty(filename):
@@ -85,7 +84,6 @@ def showResult(view):
                 view=view.window().open_file(getTempFileName(), sublime.TRANSIENT)
 
 def runCommand(window, cmd):
-    print cmd
     with open(getOutputFileName(),"w") as out:
         subprocess.call(cmd, shell=True, stderr=out)
     out.close()
