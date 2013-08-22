@@ -155,6 +155,11 @@ def descTable(index):
         else:
             sublime.error_message('No active connection')
 
+def executeQuery(query):
+    global connection
+    if connection != None:
+         connection.execute(query)
+
 class sqlDesc(sublime_plugin.WindowCommand):
     def run(self):
         global connection
@@ -174,6 +179,14 @@ class sqlShowRecords(sublime_plugin.WindowCommand):
             sublime.error_message('No active connection')
 
 class sqlQuery(sublime_plugin.WindowCommand):
+    def run(self):
+        global connection
+        if connection != None:
+            sublime.active_window().show_input_panel('Enter query', '', executeQuery, None, None)
+        else:
+            sublime.error_message('No active connection')
+
+class sqlExecute(sublime_plugin.WindowCommand):
     def run(self):
         global connection
         if connection != None:
