@@ -92,6 +92,7 @@ class Command:
         if os.path.getsize(result.name) > 0:
             sublime.active_window().open_file(result.name, sublime.TRANSIENT)
             sublime.active_window().active_view().settings().set('word_wrap', False)
+            sublime.active_window().active_view().set_syntax_file('Packages/SQL/SQL.tmLanguage')
         result.close()
         os.unlink(result.name)
 
