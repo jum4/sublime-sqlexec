@@ -164,7 +164,7 @@ class sqlDesc(sublime_plugin.WindowCommand):
         else:
             sublime.error_message('No active connection')
 
-class sqlList(sublime_plugin.WindowCommand):
+class sqlShowRecords(sublime_plugin.WindowCommand):
     def run(self):
         global connection
         if connection != None:
