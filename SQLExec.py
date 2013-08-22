@@ -1,134 +1,187 @@
-import sublime, sublime_plugin, os, subprocess, re, shutil
+import sublime, sublime_plugin, tempfile, os, subprocess
 
-def getResultFileName():
-    return os.path.join(sublime.packages_path(), 'SQLExec', 'results')
+connection = None
 
-def getTempFileName():
-    return os.path.join(sublime.packages_path(), 'SQLExec', 'tmp')
+class Connection:
+    def __init__(self, options):
+        self.settings = sublime.load_settings(options.type + ".sqlexec").get('sql_exec')
+        self.options  = options
 
-def getOutputFileName():
-    return os.path.join(sublime.packages_path(), 'SQLExec', 'output')
+    def _buildCommand(self, options):
+        return self.settings['command'] + ' ' + ' '.join(options) + ' ' + self.settings['args'].format(options=self.options)
 
-def getSelection(view):
-    queries = []
-    if view.sel():
-        for region in view.sel():
-            if region.empty():
-                queries.append(view.substr(view.line(region)))
-            else:
-                queries.append(view.substr(region))
+    def _getCommand(self, options, queries):
+        command  = self._buildCommand(options)
 
-    return ''.join(queries).replace('\n', ' ')
+        self.tmp = tempfile.NamedTemporaryFile(mode = 'w', delete = False)
+        for query in queries:
+            self.tmp.write(query)
+        self.tmp.close()
 
-def getFileCommand(view, filename):
-    options        = view.settings().get('database')
-    resultFilename = getResultFileName()
-    tempFilename   = getTempFileName()
+        cmd = '%s < "%s"' % (command, self.tmp.name)
 
-    if options['type'] == 'mysql':
-        cmd = "mysql --table -h%s -P%d -u%s -p%s -D%s < \"%s\" > \"%s\"" # Execute all file
-        cmd = cmd % ( options['host'], options['port'], options['user'], options['password'], options['database'], filename, resultFilename)
-    elif options['type'] == 'pgsql':
-        cmd =  "psql -h %s -p %d -U %s -d %s -f \"%s\" > \"%s\"" # Execute all file
-        cmd = cmd % ( options['host'], options['port'], options['user'], options['database'], filename, resultFilename)
-    elif options['type'] == 'oracle':
-        tempFile = open(getTempFileName(), 'w')
-        tempFile.write("SET LINESIZE 20000 TRIM ON TRIMSPOOL ON;\n")
-        with open(filename) as f:
-            for line in f.readlines():
-                tempFile.write(line)
-        tempFile.close()
-        f.close()
-        cmd = "sqlplus -S %s/%s@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%d)))(CONNECT_DATA=(SERVICE_NAME=%s))) < \"%s\" > \"%s\""
-        cmd = cmd % ( options['user'], options['password'], options['host'], options['port'], options['database'], filename, resultFilename)
-    return cmd
+        return Command(cmd)
 
-def getSqlCommand(view, sql):
-    options        = view.settings().get('database')
-    resultFilename = getResultFileName()
-    
-    if options['type'] == 'mysql':
-        cmd = "mysql -f --table -h%s -P%d -u%s -p%s -D%s -e\"%s\" > \"%s\"" # Execute selected queries
-        cmd = cmd % ( options['host'], options['port'], options['user'], options['password'], options['database'], sql, resultFilename)
-    elif options['type'] == 'pgsql':
-        cmd = "psql -h %s -p %d -U %s -d %s -c \"%s\" > \"%s\"" # Execute selected queries
-        cmd = cmd % ( options['host'], options['port'], options['user'], options['database'], sql, resultFilename)
-    elif options['type'] == 'oracle':
-        tempFile = open(getTempFileName(), 'w')
-        tempFile.write("SET LINESIZE 20000 TRIM ON TRIMSPOOL ON;\n")
-        tempFile.write(sql)
-        tempFile.close()    
-        cmd = "sqlplus -S %s/%s@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=%s)(PORT=%d)))(CONNECT_DATA=(SERVICE_NAME=%s))) < \"%s\" > \"%s\""
-        cmd = cmd % ( options['user'], options['password'], options['host'], options['port'], options['database'], getTempFileName(), resultFilename)
-        print cmd
-    return cmd
+    def execute(self, queries):
+        command = self._getCommand(self.settings['options'], queries)
+        command.show()
+        os.unlink(self.tmp.name)
 
-def fileIsEmpty(filename):
-    if os.path.isfile(filename):
-        statinfo = os.stat(filename)
-        return statinfo.st_size == 0
-    return True
+    def desc(self):
+        query = self.settings['queries']['desc']['query']
+        command = self._getCommand(self.settings['queries']['desc']['options'], query)
 
-def showResult(view):
-    options = view.settings().get('database')
+        tables = []
+        results = command.run()
+        for result in results:
+            try:
+                tables.append(result.split('|')[1].strip())
+            except IndexError:
+                pass
 
-    if not fileIsEmpty(getResultFileName()):
-        view=view.window().open_file(getResultFileName(), sublime.TRANSIENT)
-        view.settings().set('word_wrap', False)
-    else:
-        if not fileIsEmpty(getOutputFileName()):
-            with open(getTempFileName(), 'w') as temp:
-                for line in open (getOutputFileName(), 'r'):
-                    if line != "Warning: Using a password on the command line interface can be insecure.\n":
-                        temp.write(line)
-                temp.close()
-                view=view.window().open_file(getTempFileName(), sublime.TRANSIENT)
+        os.unlink(self.tmp.name)
 
-def runCommand(window, cmd):
-    print cmd
-    with open(getOutputFileName(),"w") as out:
-        subprocess.call(cmd, shell=True, stderr=out)
-    out.close()
-    showResult(window.active_view())
-    clean()
+        return tables
 
-def checkConfig(view):
-    if not view.settings().has('database'):
-        sublime.error_message('You have to configure database connection in your project\'s settings')
-        return False
-    else:
-        options = view.settings().get('database')
-        if not 'host' in options:
-            sublime.error_message('You have to define an host for this connection')
-            return False
-        if not 'port' in options:
-            sublime.error_message('You have to define the port for this connection')
-            return False
-        if not 'database' in options:
-            sublime.error_message('You have to define the database name for this connection')
-            return False
+    def descTable(self, tableName):
+        query = self.settings['queries']['desc table']['query'] % tableName
+        command = self._getCommand(self.settings['queries']['desc table']['options'], query)
+        command.show()
 
-    return True
+        os.unlink(self.tmp.name)
 
-def clean():
-    if os.path.isfile(getResultFileName()):
-        os.remove(getResultFileName())
-    if os.path.isfile(getTempFileName()):
-        os.remove(getTempFileName())
-    if os.path.isfile(getOutputFileName()):
-        os.remove(getOutputFileName())
+    def showTableRecords(self, tableName):
+        query = self.settings['queries']['show records']['query'] % tableName
+        command = self._getCommand(self.settings['queries']['desc table']['options'], query)
+        command.show()
 
-class SqlExec(sublime_plugin.WindowCommand):
+        os.unlink(self.tmp.name)
+
+class Command:
+    def __init__(self, text):
+        self.text = text
+
+    def _run(self):
+        result = tempfile.NamedTemporaryFile(mode = 'w', delete = False)
+        output = tempfile.NamedTemporaryFile(mode = 'r+', delete = False)
+        command = '%s > "%s"' % (self.text, result.name)
+        result.close()
+        subprocess.call(command, shell=True, stderr=output)
+
+        if os.path.getsize(output.name) > 0:
+            output.seek(0)
+            print(output.read())
+            sublime.active_window().run_command("show_panel", {"panel": "console"})
+        output.close()
+        os.unlink(output.name)
+
+        return open(result.name, 'r')
+        
     def run(self):
-        sql = getSelection(self.window.active_view())
-        if sql != '' and checkConfig(self.window.active_view()):
-            cmd = getSqlCommand(self.window.active_view(), sql)
-            runCommand(self.window, cmd)
+        results = []
+        result = self._run()
+        for line in result:
+            results.append(line)
+        result.close()
+        os.unlink(result.name)
 
-class SqlExecFile(sublime_plugin.WindowCommand):
+        return results
+
+    def show(self):
+        result = self._run()
+        if os.path.getsize(result.name) > 0:
+            sublime.active_window().open_file(result.name, sublime.TRANSIENT)
+            sublime.active_window().active_view().settings().set('word_wrap', False)
+        result.close()
+        os.unlink(result.name)
+
+class Selection:
+    def __init__(self, view):
+        self.view = view
+    def getQueries(self):
+        text = []
+        if self.view.sel():
+            for region in self.view.sel():
+                if region.empty():
+                    text.append(self.view.substr(self.view.line(region)))
+                else:
+                    text.append(self.view.substr(region))
+        return text
+
+class Options:
+    def __init__(self, name):
+        self.name     = name
+        connections = sublime.load_settings("SQLExec.sublime-settings").get('connections')
+        self.type     = connections[self.name]['type']
+        self.host     = connections[self.name]['host']
+        self.port     = connections[self.name]['port']
+        self.username = connections[self.name]['username']
+        self.password = connections[self.name]['password']
+        self.database = connections[self.name]['database']
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def list():
+        names = []
+        connections = sublime.load_settings("SQLExec.sublime-settings").get('connections')
+        for connection in connections:
+            names.append(connection)
+        return names
+
+def sqlChangeConnection(index):
+    global connection
+    names = Options.list()
+    options = Options(names[index])
+    connection = Connection(options)
+    sublime.status_message(' SQLExec: switched to %s' % names[index])
+
+def showTableRecords(index):
+    global connection
+    if index > -1:
+        if connection != None:
+            tables = connection.desc()
+            connection.showTableRecords(tables[index])
+        else:
+            sublime.error_message('No active connection')
+
+def descTable(index):
+    global connection
+    if index > -1:
+        if connection != None:
+            tables = connection.desc()
+            connection.descTable(tables[index])
+        else:
+            sublime.error_message('No active connection')
+
+class sqlDesc(sublime_plugin.WindowCommand):
     def run(self):
-        if checkConfig(self.window.active_view()):
-            self.window.active_view().run_command('save')
-            filename = self.window.active_view().file_name()
-            cmd = getFileCommand(self.window.active_view(), filename)
-            runCommand(self.window, cmd)
+        global connection
+        if connection != None:
+            tables = connection.desc()
+            sublime.active_window().show_quick_panel(tables, descTable)
+        else:
+            sublime.error_message('No active connection')
+
+class sqlList(sublime_plugin.WindowCommand):
+    def run(self):
+        global connection
+        if connection != None:
+            tables = connection.desc()
+            sublime.active_window().show_quick_panel(tables, showTableRecords)
+        else:
+            sublime.error_message('No active connection')
+
+class sqlQuery(sublime_plugin.WindowCommand):
+    def run(self):
+        global connection
+        if connection != None:
+            selection = Selection(self.window.active_view())
+            connection.execute(selection.getQueries())
+        else:
+            sublime.error_message('No active connection')
+
+class sqlListConnection(sublime_plugin.WindowCommand):
+    def run(self):
+        sublime.active_window().show_quick_panel(Options.list(), sqlChangeConnection)
