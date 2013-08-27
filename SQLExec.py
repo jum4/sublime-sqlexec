@@ -1,6 +1,7 @@
 import sublime, sublime_plugin, tempfile, os, subprocess
 
 connection = None
+last_query = ''
 
 class Connection:
     def __init__(self, options):
@@ -158,8 +159,10 @@ def descTable(index):
 
 def executeQuery(query):
     global connection
+    global last_query
+    last_query = query
     if connection != None:
-         connection.execute(query)
+        connection.execute(query)
 
 class sqlDesc(sublime_plugin.WindowCommand):
     def run(self):
@@ -182,8 +185,9 @@ class sqlShowRecords(sublime_plugin.WindowCommand):
 class sqlQuery(sublime_plugin.WindowCommand):
     def run(self):
         global connection
+        global last_query
         if connection != None:
-            sublime.active_window().show_input_panel('Enter query', '', executeQuery, None, None)
+            sublime.active_window().show_input_panel('Enter query', last_query, executeQuery, None, None)
         else:
             sublime.error_message('No active connection')
 
