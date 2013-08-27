@@ -130,6 +130,7 @@ class Options:
         connections = sublime.load_settings("SQLExec.sublime-settings").get('connections')
         for connection in connections:
             names.append(connection)
+        names.sort()
         return names
 
 def sqlChangeConnection(index):
