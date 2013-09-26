@@ -2,6 +2,7 @@ sublime-sqlexec
 ===============
 
 A Plugin for running SQL commands in Sublime Text.
+
 Compatibility: MySQL, PostgreSQL.
 
 # Installation
@@ -27,14 +28,14 @@ Some directories have to be defined in the PATH environment variable, according 
             "username": "anotheruser",
             "password": "password",
             "database": "dbname"
-        },
+        }
     }
 }
 ```
 # Usage
 Default shortcuts are :
-- ctrl+alt+e: swhitch connection
-- ctrl+e ctrl+e: execute selected query
-- ctrl+e ctrl+q: type a query
-- ctrl+e ctrl+s: show tables records
-- ctrl+e ctrl+d: desc table
+- `ctrl+alt+e` : swhitch connection
+- `ctrl+e` `ctrl+e` : execute selected query
+- `ctrl+e` `ctrl+q` : type a query
+- `ctrl+e` `ctrl+s` : show tables records
+- `ctrl+e` `ctrl+d` : desc table
