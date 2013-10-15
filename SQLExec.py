@@ -83,7 +83,6 @@ class Command:
 
     def show(self):
         results = self.run()
-        results = self.run()
         if results:
             self._result(results)
 
