@@ -7,7 +7,7 @@ Compatibility: MySQL, PostgreSQL.
 
 # Installation
 Download the Zip file, extract it to your Sublime Text packages directory, and rename it to SQLExec
-  
+
 Some directories have to be defined in the PATH environment variable, according to the SGBD that you want to use: "mysql" executable for MySQL, "pgsql" executable for PostgreSQL, or "sqlplus" executable for Oracle ( Not tested )
 
 # Sample configuration file
@@ -25,6 +25,7 @@ Some directories have to be defined in the PATH environment variable, according 
         "Connection 2": {
             "type"    : "pgsql",
             "host"    : "psql.server.fr",
+            "port"    :  5432,
             "username": "anotheruser",
             "password": "password",
             "database": "dbname"
