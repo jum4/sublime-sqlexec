@@ -33,8 +33,7 @@ class Connection:
         command = self._getCommand(self.settings['queries']['desc']['options'], query)
 
         tables = []
-        results = command.run()
-        for result in results:
+        for result in command.run().splitlines():
             try:
                 tables.append(result.split('|')[1].strip())
             except IndexError:
@@ -62,40 +61,31 @@ class Command:
     def __init__(self, text):
         self.text = text
 
-    def _run(self):
-        result = tempfile.NamedTemporaryFile(mode = 'w', delete = False)
-        output = tempfile.NamedTemporaryFile(mode = 'r+', delete = False)
-        command = '%s > "%s"' % (self.text, result.name)
-        result.close()
-        subprocess.call(command, shell=True, stderr=output)
+    def _display(self, panelName, text):
+        panel = sublime.active_window().create_output_panel(panelName)
+        panel.set_read_only(False)
+        panel.set_syntax_file('Packages/SQL/SQL.tmLanguage')
+        panel.run_command('append', {'characters': text})
+        panel.set_read_only(True)
+        sublime.active_window().run_command("show_panel", {"panel": "output." + panelName})
 
-        if os.path.getsize(output.name) > 0:
-            output.seek(0)
-            print(output.read())
-            sublime.active_window().run_command("show_panel", {"panel": "console"})
-        output.close()
-        os.unlink(output.name)
+    def _result(self, text):
+        self._display('SQLExec', text)
 
-        return open(result.name, 'r')
-        
+    def _errors(self, text):
+        self._display('SQLExec.errors', text)
+
     def run(self):
-        results = []
-        result = self._run()
-        for line in result:
-            results.append(line)
-        result.close()
-        os.unlink(result.name)
-
-        return results
+        results, errors = subprocess.Popen(self.text, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True).communicate()
+        if errors:
+            self._errors(errors.decode('utf-8', 'replace').replace('\r', ''))
+        return results.decode('utf-8', 'replace').replace('\r', '')
 
     def show(self):
-        result = self._run()
-        if os.path.getsize(result.name) > 0:
-            sublime.active_window().open_file(result.name, sublime.TRANSIENT)
-            sublime.active_window().active_view().settings().set('word_wrap', False)
-            sublime.active_window().active_view().set_syntax_file('Packages/SQL/SQL.tmLanguage')
-        result.close()
-        os.unlink(result.name)
+        results = self.run()
+        results = self.run()
+        if results:
+            self._result(results)
 
 class Selection:
     def __init__(self, view):
@@ -113,7 +103,7 @@ class Selection:
 class Options:
     def __init__(self, name):
         self.name     = name
-        connections = sublime.load_settings("SQLExec.sublime-settings").get('connections')
+        connections   = sublime.load_settings("SQLExec.sublime-settings").get('connections')
         self.type     = connections[self.name]['type']
         self.host     = connections[self.name]['host']
         self.port     = connections[self.name]['port']
