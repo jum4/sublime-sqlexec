@@ -1,0 +1,26 @@
+[
+  {
+    "caption": "SQLExec: List connections",
+    "command": "sql_list_connection"
+  },
+  {
+    "caption": "SQLExec: Execute",
+    "command": "sql_execute"
+  },
+  {
+    "caption": "SQLExec: History",
+    "command": "sql_history"
+  },
+  {
+    "caption": "SQLExec: Type Query",
+    "command": "sql_query"
+  },
+  {
+    "caption": "SQLExec: Show Table Records",
+    "command": "sql_show_records"
+  },
+  {
+    "caption": "SQLExec: Desc Table",
+    "command": "sql_desc"
+  }
+]
