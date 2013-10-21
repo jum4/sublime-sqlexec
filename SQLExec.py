@@ -155,7 +155,7 @@ def executeHistoryQuery(index):
 
 def executeQuery(query):
     global connection
-    global historyh
+    global history
     history.append(query)
     if connection != None:
         connection.execute(query)
