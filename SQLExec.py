@@ -6,10 +6,11 @@ history = ['']
 class Connection:
     def __init__(self, options):
         self.settings = sublime.load_settings(options.type + ".sqlexec").get('sql_exec')
+        self.command  = sublime.load_settings("SQLExec.sublime-settings").get('sql_exec.commands')[options.type]
         self.options  = options
 
     def _buildCommand(self, options):
-        return self.settings['command'] + ' ' + ' '.join(options) + ' ' + self.settings['args'].format(options=self.options)
+        return self.command + ' ' + ' '.join(options) + ' ' + self.settings['args'].format(options=self.options)
 
     def _getCommand(self, options, queries):
         command  = self._buildCommand(options)
@@ -82,7 +83,6 @@ class Command:
         return results.decode('utf-8', 'replace').replace('\r', '')
 
     def show(self):
-        results = self.run()
         results = self.run()
         if results:
             self._result(results)
