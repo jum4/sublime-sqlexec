@@ -1,6 +1,5 @@
 {
     "sql_exec": {
-        "command": "sqlplus",
         "options": ["-S"],
         "args": "{options.host}/{options.password}@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={options.host})(PORT={options.port})))(CONNECT_DATA=(SERVICE_NAME={options.database})))"
     }

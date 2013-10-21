@@ -1,6 +1,5 @@
 {
     "sql_exec": {
-        "command": "mysql",
         "options": ["-f", "--table"],
         "args": "-h{options.host} -P{options.port} -u{options.username} -p{options.password} -D{options.database}",
         "queries": {

@@ -1,6 +1,5 @@
 {
     "sql_exec": {
-        "command": "psql",
         "options": [],
         "args": "-h {options.host} -p {options.port} -U {options.username} -d {options.database}",
         "queries": {
