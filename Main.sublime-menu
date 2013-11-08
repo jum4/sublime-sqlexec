@@ -16,12 +16,12 @@
                         "children":
                         [
                             {
-                                "command": "open_file", 
-                                "args": {"file": "${packages}/SQLExec/Base File.sublime-settings"},
+                                "command": "open_file",
+                                "args": {"file": "${packages}/SQLExec/SQLExec.sublime-settings"},
                                 "caption": "Settings – Default"
                             },
                             {
-                                "command": "open_file", 
+                                "command": "open_file",
                                 "args": {"file": "${packages}/User/SQLExec.sublime-settings"},
                                 "caption": "Settings – User"
                             },
