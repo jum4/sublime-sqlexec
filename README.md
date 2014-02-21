@@ -11,7 +11,7 @@ Oracle is coming soon.
 
 ### With Package Control ###
 
-Look for the package named `PhpNamespace`.
+Look for the package named `SQLExec`.
 
 ### With Git ###
 
