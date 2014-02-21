@@ -3,7 +3,7 @@ sublime-sqlexec
 
 A Plugin for running SQL commands in Sublime Text.
 
-Compatibility: MySQL, PostgreSQL.
+Compatibility: MySQL, PostgreSQL, Vertica.
 
 Oracle is coming soon.
 
