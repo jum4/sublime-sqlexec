@@ -15,7 +15,7 @@
             },
             "show records": {
                 "query": "select * from %s limit 100",
-                "options": [],
+                "options": ["-f", "--table"],
                 "format" : "|%s|"
             }
         }
