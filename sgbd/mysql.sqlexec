@@ -9,12 +9,12 @@
                 "format" : "|%s|"
             },
             "desc table": {
-                "query": "desc %s",
+                "query": "desc `%s`",
                 "options": ["-f", "--table"],
                 "format" : "|%s|"
             },
             "show records": {
-                "query": "select * from %s limit 100",
+                "query": "select * from `%s` limit 100",
                 "options": ["-f", "--table"],
                 "format" : "|%s|"
             }
