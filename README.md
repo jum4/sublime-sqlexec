@@ -3,7 +3,7 @@ sublime-sqlexec
 
 A Plugin for running SQL commands in Sublime Text.
 
-Compatibility: MySQL, PostgreSQL.
+Compatibility: MySQL, PostgreSQL, Vertica.
 
 Oracle is coming soon.
 
@@ -11,13 +11,13 @@ Oracle is coming soon.
 
 ### With Package Control ###
 
-Look for the package named `PhpNamespace`.
+Look for the package named `SQLExec`.
 
 ### With Git ###
 
 Download the Zip file, extract it to your Sublime Text packages directory, and rename it to SQLExec
 
-Some directories have to be defined in the PATH environment variable, according to the SGBD that you want to use: "mysql" executable for MySQL, "pgsql" executable for PostgreSQL, or "sqlplus" executable for Oracle ( Not tested )
+Some directories have to be defined in the PATH environment variable, according to the SGBD that you want to use: "mysql" executable for MySQL, "pgsql" executable for PostgreSQL, "vsql" executable for Vertica, or "sqlplus" executable for Oracle ( Not tested )
 
 You can also specify full path for these command in settings :
 
