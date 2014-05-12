@@ -12,10 +12,11 @@ class Connection:
     def _buildCommand(self, options):
         return self.command + ' ' + ' '.join(options) + ' ' + self.settings['args'].format(options=self.options)
 
-    def _getCommand(self, options, queries):
+    def _getCommand(self, options, queries, header = ''):
         command  = self._buildCommand(options)
-
         self.tmp = tempfile.NamedTemporaryFile(mode = 'w', delete = False, suffix='.sql')
+        for query in self.settings['before']:
+            self.tmp.write(query + "\n")
         for query in queries:
             self.tmp.write(query)
         self.tmp.close()
@@ -26,7 +27,7 @@ class Connection:
 
     def execute(self, queries):
         command = self._getCommand(self.settings['options'], queries)
-        command.show()
+        command.show(queries[0])
         os.unlink(self.tmp.name)
 
     def desc(self):
@@ -47,14 +48,14 @@ class Connection:
     def descTable(self, tableName):
         query = self.settings['queries']['desc table']['query'] % tableName
         command = self._getCommand(self.settings['queries']['desc table']['options'], query)
-        command.show()
+        command.show('DESC ' + tableName)
 
         os.unlink(self.tmp.name)
 
     def showTableRecords(self, tableName):
         query = self.settings['queries']['show records']['query'] % tableName
         command = self._getCommand(self.settings['queries']['desc table']['options'], query)
-        command.show()
+        command.show('SELECT * FROM ' + tableName)
 
         os.unlink(self.tmp.name)
 
@@ -82,8 +83,12 @@ class Command:
             self._errors(errors.decode('utf-8', 'replace').replace('\r', ''))
         return results.decode('utf-8', 'replace').replace('\r', '')
 
-    def show(self):
+    def show(self, title = ''):
         results = self.run()
+
+        if title != '':
+            results = title + "\n" + results
+
         if results:
             self._result(results)
 
@@ -110,6 +115,8 @@ class Options:
         self.username = connections[self.name]['username']
         self.password = connections[self.name]['password']
         self.database = connections[self.name]['database']
+        if 'service' in connections[self.name]:
+            self.service  = connections[self.name]['service']
 
     def __str__(self):
         return self.name
