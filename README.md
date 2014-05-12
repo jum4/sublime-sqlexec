@@ -3,9 +3,7 @@ sublime-sqlexec
 
 A Plugin for running SQL commands in Sublime Text.
 
-Compatibility: MySQL, PostgreSQL, Vertica.
-
-Oracle is coming soon.
+Compatibility: MySQL, PostgreSQL, Vertica, Oracle.
 
 # Installation
 
@@ -35,7 +33,7 @@ You can also specify full path for these command in settings :
 {
     "connections": {
         "Connection 1": {
-            "type"    : "mysql",
+            "type"    : "mysql", 
             "host"    : "127.0.0.1",
             "port"    : 3306,
             "username": "user",
@@ -44,11 +42,20 @@ You can also specify full path for these command in settings :
         },
         "Connection 2": {
             "type"    : "pgsql",
-            "host"    : "psql.server.fr",
+            "host"    : "127.0.0.1",
             "port"    :  5432,
             "username": "anotheruser",
             "password": "password",
             "database": "dbname"
+        },
+        "Connection 2": {
+            "type"    : "oracle",
+            "host"    : "127.0.0.1",
+            "port"    :  1522,
+            "username": "anotheruser",
+            "password": "password",
+            "database": "dbname",
+            "service" : "servicename"
         }
     }
 }
