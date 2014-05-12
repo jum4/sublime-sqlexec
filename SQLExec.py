@@ -15,7 +15,7 @@ class Connection:
     def _getCommand(self, options, queries):
         command  = self._buildCommand(options)
 
-        self.tmp = tempfile.NamedTemporaryFile(mode = 'w', delete = False)
+        self.tmp = tempfile.NamedTemporaryFile(mode = 'w', delete = False, suffix='.sql')
         for query in queries:
             self.tmp.write(query)
         self.tmp.close()
