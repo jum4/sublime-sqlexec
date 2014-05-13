@@ -27,7 +27,7 @@ class Connection:
 
     def execute(self, queries):
         command = self._getCommand(self.settings['options'], queries)
-        command.show(queries[0])
+        command.show()
         os.unlink(self.tmp.name)
 
     def desc(self):
@@ -48,14 +48,14 @@ class Connection:
     def descTable(self, tableName):
         query = self.settings['queries']['desc table']['query'] % tableName
         command = self._getCommand(self.settings['queries']['desc table']['options'], query)
-        command.show('DESC ' + tableName)
+        command.show()
 
         os.unlink(self.tmp.name)
 
     def showTableRecords(self, tableName):
         query = self.settings['queries']['show records']['query'] % tableName
         command = self._getCommand(self.settings['queries']['desc table']['options'], query)
-        command.show('SELECT * FROM ' + tableName)
+        command.show()
 
         os.unlink(self.tmp.name)
 
@@ -79,15 +79,14 @@ class Command:
 
     def run(self):
         results, errors = subprocess.Popen(self.text, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True).communicate()
-        if errors:
+
+        if not results and errors:
             self._errors(errors.decode('utf-8', 'replace').replace('\r', ''))
+
         return results.decode('utf-8', 'replace').replace('\r', '')
 
-    def show(self, title = ''):
+    def show(self):
         results = self.run()
-
-        if title != '':
-            results = title + "\n" + results
 
         if results:
             self._result(results)
