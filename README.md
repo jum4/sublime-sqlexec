@@ -8,6 +8,6 @@ A Plugin for running SQL commands in Sublime Text.
 
 * Julien Martin
 
-## Documentation
+## Installation and Configuration
 
-[http://lubriciousdevelopers.github.io/projects/sublime-sql-exec/](http://lubriciousdevelopers.github.io/projects/sublime-sql-exec/)
+[Full documentation on official site](http://lubriciousdevelopers.github.io/projects/sublime-sql-exec/)
