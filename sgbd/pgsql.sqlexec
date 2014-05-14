@@ -5,12 +5,12 @@
         "args": "-h {options.host} -p {options.port} -U \"{options.username}\" -d \"{options.database}\"",
         "queries": {
             "desc" : {
-                "query": "\\dt",
+                "query": "SELECT '| '||quote_ident(n.nspname)||'.'|| quote_ident(c.relname)||' |' AS tblname FROM pg_catalog.pg_class AS c INNER JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace WHERE relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema') ORDER BY pg_catalog.pg_table_is_visible(c.oid) DESC, n.nspname, c.relname",
                 "options": ["-t"],
                 "format" : "|%s|"
             },
             "desc table": {
-                "query": "\\d %s",
+                "query": "\\d+ %s",
                 "options": [],
                 "format" : "|%s|"
             },
