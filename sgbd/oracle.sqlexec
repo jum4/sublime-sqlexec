@@ -6,7 +6,7 @@
             "set pagesize 100",
             "set linesize 500"
         ],
-        "args": "{options.username}/{options.password}@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={options.host})(PORT={options.port})))(CONNECT_DATA=(SERVICE_NAME={options.service})))",
+        "args": "{options.username}/{options.password}@\"(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={options.host})(PORT={options.port})))(CONNECT_DATA=(SERVICE_NAME={options.service})))\"",
         "queries": {
             "desc" : {
                 "query": "select CONCAT(CONCAT('| ', table_name), ' |') as tables from user_tables;",
