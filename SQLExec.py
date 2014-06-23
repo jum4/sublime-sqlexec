@@ -54,7 +54,7 @@ class Connection:
 
     def showTableRecords(self, tableName):
         query = self.settings['queries']['show records']['query'] % tableName
-        command = self._getCommand(self.settings['queries']['desc table']['options'], query)
+        command = self._getCommand(self.settings['queries']['show records']['options'], query)
         command.show()
 
         os.unlink(self.tmp.name)
@@ -82,6 +82,7 @@ class Command:
         self._display('SQLExec.errors', text)
 
     def run(self):
+        sublime.status_message(' SQLExec: running SQL command')
         results, errors = subprocess.Popen(self.text, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True).communicate()
 
         if not results and errors:
