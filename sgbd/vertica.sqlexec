@@ -1,6 +1,7 @@
 {
     "sql_exec": {
         "options": [],
+        "before" : [],
         "args": "-h {options.host} -p {options.port} -U \"{options.username}\" -w \"{options.password}\" -d \"{options.database}\"",
         "queries": {
             "desc" : {
