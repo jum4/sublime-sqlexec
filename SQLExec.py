@@ -168,6 +168,7 @@ def executeQuery(query):
     global connection
     global history
     history.append(query)
+    history = list(set(history))
     if connection != None:
         connection.execute(query)
 
