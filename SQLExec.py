@@ -113,8 +113,11 @@ class Options:
         self.host     = connections[self.name]['host']
         self.port     = connections[self.name]['port']
         self.username = connections[self.name]['username']
-        self.password = connections[self.name]['password']
         self.database = connections[self.name]['database']
+
+        if 'password' in connections[self.name]:
+            self.password = connections[self.name]['password']
+
         if 'service' in connections[self.name]:
             self.service  = connections[self.name]['service']
 
