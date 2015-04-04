@@ -1,0 +1,9 @@
+{
+    "sql_exec": {
+        "queries": {
+            "desc" : "SELECT TABLE_NAME FROM information_schema.tables;",
+            "desc table": "SELECT * FROM information_schema.columns WHERE table_name = '%s'",
+            "show records": "select * from %s"
+        }
+    }
+}

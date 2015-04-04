@@ -5,4 +5,6 @@
     { "keys": ["ctrl+e", "ctrl+q"], "command": "sql_query" },
     { "keys": ["ctrl+e", "ctrl+s"], "command": "sql_show_records" },
     { "keys": ["ctrl+e", "ctrl+d"], "command": "sql_desc" },
+    { "keys": ["ctrl+e", "ctrl+r"], "command": "sql_redo" },
+    { "keys": ["ctrl+e", "ctrl+c"], "command": "sql_clear_history" }
 ]

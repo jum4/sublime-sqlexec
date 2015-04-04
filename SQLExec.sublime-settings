@@ -1,10 +1,5 @@
 {
     "sql_exec.debug": false,
-    "sql_exec.commands": {
-        "mysql" : "mysql",
-        "pgsql" : "psql",
-        "oracle": "sqlplus"
-    },
     "connections": {
     }
 }

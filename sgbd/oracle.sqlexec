@@ -1,28 +1,9 @@
 {
     "sql_exec": {
-        "options": ["-S"],
-        "before": [
-            "set colsep '|'",
-            "set pagesize 100",
-            "set linesize 500"
-        ],
-        "args": "{options.username}/{options.password}@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={options.host})(PORT={options.port})))(CONNECT_DATA=(SERVICE_NAME={options.service})))",
         "queries": {
-            "desc" : {
-                "query": "select CONCAT(CONCAT('| ', table_name), ' |') as tables from user_tables;",
-                "options": ["-S"],
-                "format" : "|%s|"
-            },
-            "desc table": {
-                "query": "desc %s;",
-                "options": ["-S"],
-                "format" : "|%s|"
-            },
-            "show records": {
-                "query": "select * from %s;",
-                "options": ["-S"],
-                "format" : "|%s|"
-            }
+            "desc": "select table_name as tables from user_tables;",
+            "desc table": "select * from user_tab_columns where table_name = '%s' order by column_id;",
+            "show records": "select * from %s;"
         }
     }
 }

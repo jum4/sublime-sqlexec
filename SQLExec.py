@@ -1,216 +1,198 @@
-import sublime, sublime_plugin, tempfile, os, subprocess
+
+
+import sublime, sublime_plugin, sys, os, socket
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "lib"))
+
+import pymysql as api_mysql
+import postgresql.driver.dbapi20 as api_pgsql
+import pytds as api_sqlserver
+import ora as api_oracle
+
+from prettytable import from_db_cursor
 
 connection = None
-history = ['']
+history = []
 
+socket.setdefaulttimeout(10)
+
+# This class manage persisting connections
+# You don't have to call connect method, it's automatically called when it's necessary
 class Connection:
     def __init__(self, options):
-        self.settings = sublime.load_settings(options.type + ".sqlexec").get('sql_exec')
-        self.command  = sublime.load_settings("SQLExec.sublime-settings").get('sql_exec.commands')[options.type]
+        self.settings = sublime.load_settings(options['type'] + ".sqlexec").get('sql_exec')
+        self.api = eval("api_" + options['type'])
         self.options  = options
-
-    def _buildCommand(self, options):
-        return self.command + ' ' + ' '.join(options) + ' ' + self.settings['args'].format(options=self.options)
-
-    def _getCommand(self, options, queries, header = ''):
-        command  = self._buildCommand(options)
-        self.tmp = tempfile.NamedTemporaryFile(mode = 'w', delete = False, suffix='.sql')
-        for query in self.settings['before']:
-            self.tmp.write(query + "\n")
-        for query in queries:
-            self.tmp.write(query)
-        self.tmp.close()
-
-        cmd = '%s < "%s"' % (command, self.tmp.name)
-
-        return Command(cmd)
-
-    def execute(self, queries):
-        command = self._getCommand(self.settings['options'], queries)
-        command.show(queries[0])
-        os.unlink(self.tmp.name)
-
+        self.db = None
+    def connect(self):
+        if None == self.db:
+            if self.options['type'] == 'sqlserver':
+                self.db = self.api.connect(port=self.options['port'], server=self.options['host'], database=self.options['database'], user=self.options['username'], password=self.options['password'])
+            else:
+                self.db = self.api.connect(port=self.options['port'], host=self.options['host'], database=self.options['database'], user=self.options['username'], password=self.options['password'])
+            self.db.autocommit = True
     def desc(self):
-        query = self.settings['queries']['desc']['query']
-        command = self._getCommand(self.settings['queries']['desc']['options'], query)
-
-        tables = []
-        for result in command.run().splitlines():
-            try:
-                tables.append(result.split('|')[1].strip())
-            except IndexError:
-                pass
-
-        os.unlink(self.tmp.name)
-
-        return tables
-
+        try:
+            self.connect()
+            query = self.settings['queries']['desc']
+            cur = self.db.cursor()
+            cur.execute(query);
+            result = cur.fetchall()
+            self.tables = tuple(x[0] for x in result)
+            return self.tables
+        except self.api.Error as e:
+            displayPanel('Error: %s' % e)
+    def query(self, query):
+        try:
+            self.connect()
+            historize(query)
+            cur = self.db.cursor()
+            cur.execute(query)
+            table = from_db_cursor(cur)
+            return table.get_string()
+        except self.api.Error as e:
+            displayPanel('Error: %s' % e)
     def descTable(self, tableName):
-        query = self.settings['queries']['desc table']['query'] % tableName
-        command = self._getCommand(self.settings['queries']['desc table']['options'], query)
-        command.show('DESC ' + tableName)
+        return self.query(self.settings['queries']['desc table'] % tableName)
+    def showRecords(self, tableName):
+        return self.query(self.settings['queries']['show records'] % tableName)
 
-        os.unlink(self.tmp.name)
+def displayPanel(text):
+    panel = sublime.active_window().create_output_panel('SQLExec')
+    sublime.active_window().run_command("show_panel", {"panel": "output.SQLExec"})
+    panel.set_read_only(False)
+    panel.set_syntax_file('Packages/SQL/SQL.tmLanguage')
+    panel.run_command('append', {'characters': text})
+    panel.set_read_only(True)
 
-    def showTableRecords(self, tableName):
-        query = self.settings['queries']['show records']['query'] % tableName
-        command = self._getCommand(self.settings['queries']['desc table']['options'], query)
-        command.show('SELECT * FROM ' + tableName)
-
-        os.unlink(self.tmp.name)
-
-class Command:
-    def __init__(self, text):
-        self.text = text
-
-    def _display(self, panelName, text):
-        panel = sublime.active_window().create_output_panel(panelName)
+def displayWindow(text):
+    panel = None
+    for view in sublime.active_window().views():
+        if view.name() == 'SQLExec':
+            panel = view
+            panel.set_read_only(False)
+            sublime.active_window().focus_view(panel)
+            view.run_command('select_all')
+            view.run_command('cut')
+    if panel == None:
+        panel = sublime.active_window().new_file()
+        panel.set_scratch(True)
+        panel.set_name('SQLExec')
         panel.set_read_only(False)
         panel.set_syntax_file('Packages/SQL/SQL.tmLanguage')
-        panel.run_command('append', {'characters': text})
-        panel.set_read_only(True)
-        sublime.active_window().run_command("show_panel", {"panel": "output." + panelName})
+    panel.run_command('append', {'characters': text})
+    panel.set_read_only(True)
 
-    def _result(self, text):
-        self._display('SQLExec', text)
+def display(text):
+    if sublime.load_settings("SQLExec.sublime-settings").get('show_result_on_window'):
+        displayWindow(text)
+    else:
+        displayPanel(text)
 
-    def _errors(self, text):
-        self._display('SQLExec.errors', text)
+def historize(query):
+    global history
 
-    def run(self):
-        results, errors = subprocess.Popen(self.text, stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True).communicate()
-        if errors:
-            self._errors(errors.decode('utf-8', 'replace').replace('\r', ''))
-        return results.decode('utf-8', 'replace').replace('\r', '')
+    if (query != lastQuery()):
+        history.insert(0, query)
 
-    def show(self, title = ''):
-        results = self.run()
+def queries():
+    global history
 
-        if title != '':
-            results = title + "\n" + results
+    return history
 
-        if results:
-            self._result(results)
+def clearHistory():
+    global history
 
-class Selection:
-    def __init__(self, view):
-        self.view = view
-    def getQueries(self):
-        text = []
-        if self.view.sel():
-            for region in self.view.sel():
-                if region.empty():
-                    text.append(self.view.substr(self.view.line(region)))
-                else:
-                    text.append(self.view.substr(region))
-        return text
+    history = []
 
-class Options:
-    def __init__(self, name):
-        self.name     = name
-        connections   = sublime.load_settings("SQLExec.sublime-settings").get('connections')
-        self.type     = connections[self.name]['type']
-        self.host     = connections[self.name]['host']
-        self.port     = connections[self.name]['port']
-        self.username = connections[self.name]['username']
-        self.database = connections[self.name]['database']
+def lastQuery():
+    global history
 
-        if 'password' in connections[self.name]:
-            self.password = connections[self.name]['password']
+    if 0 < len(history):
+        return history[0]
+    return ''
 
-        if 'service' in connections[self.name]:
-            self.service  = connections[self.name]['service']
-
-    def __str__(self):
-        return self.name
-
-    @staticmethod
-    def list():
-        names = []
-        connections = sublime.load_settings("SQLExec.sublime-settings").get('connections')
-        for connection in connections:
-            names.append(connection)
-        names.sort()
-        return names
-
-def sqlChangeConnection(index):
+def connect(name):
     global connection
-    names = Options.list()
-    options = Options(names[index])
+    options = sublime.load_settings("SQLExec.sublime-settings").get('connections')[name]
     connection = Connection(options)
-    sublime.status_message(' SQLExec: switched to %s' % names[index])
 
-def showTableRecords(index):
+def getConnection():
     global connection
-    if index > -1:
-        if connection != None:
-            tables = connection.desc()
-            connection.showTableRecords(tables[index])
-        else:
-            sublime.error_message('No active connection')
 
-def descTable(index):
-    global connection
-    if index > -1:
-        if connection != None:
-            tables = connection.desc()
-            connection.descTable(tables[index])
-        else:
-            sublime.error_message('No active connection')
-
-def executeHistoryQuery(index):
-    global history
-    if index > -1:
-        executeQuery(history[index])
-
-def executeQuery(query):
-    global connection
-    global history
-    history.append(query)
     if connection != None:
-        connection.execute(query)
+        return connection
+    else:
+        displayPanel('No active connection')
+        exit()
 
-class sqlHistory(sublime_plugin.WindowCommand):
-    global history
-    def run(self):
-        sublime.active_window().show_quick_panel(history, executeHistoryQuery)
-
-class sqlDesc(sublime_plugin.WindowCommand):
-    def run(self):
-        global connection
-        if connection != None:
-            tables = connection.desc()
-            sublime.active_window().show_quick_panel(tables, descTable)
-        else:
-            sublime.error_message('No active connection')
-
-class sqlShowRecords(sublime_plugin.WindowCommand):
-    def run(self):
-        global connection
-        if connection != None:
-            tables = connection.desc()
-            sublime.active_window().show_quick_panel(tables, showTableRecords)
-        else:
-            sublime.error_message('No active connection')
-
-class sqlQuery(sublime_plugin.WindowCommand):
-    def run(self):
-        global connection
-        global history
-        if connection != None:
-            sublime.active_window().show_input_panel('Enter query', history[-1], executeQuery, None, None)
-        else:
-            sublime.error_message('No active connection')
-
-class sqlExecute(sublime_plugin.WindowCommand):
-    def run(self):
-        global connection
-        if connection != None:
-            selection = Selection(self.window.active_view())
-            connection.execute(selection.getQueries())
-        else:
-            sublime.error_message('No active connection')
+def getConnectionsList():
+    names = []
+    connections = sublime.load_settings("SQLExec.sublime-settings").get('connections')
+    for connection in connections:
+        names.append(connection)
+    names.sort()
+    return names
 
 class sqlListConnection(sublime_plugin.WindowCommand):
     def run(self):
-        sublime.active_window().show_quick_panel(Options.list(), sqlChangeConnection)
+        def changeConnection(index):
+            names = getConnectionsList()
+            connect(names[index])
+            sublime.status_message(' SQLExec: switched to %s' % names[index])
+        sublime.active_window().show_quick_panel(getConnectionsList(), changeConnection)
+
+class sqlDesc(sublime_plugin.WindowCommand):
+    def run(self):
+        def selectTable(index):
+            if index > -1:
+                display(getConnection().descTable(getConnection().tables[index]))
+        tables = getConnection().desc()
+        if len(tables) > 0:
+            sublime.active_window().show_quick_panel(tables, selectTable)
+        else:
+            displayPanel('There is no table in this database')
+
+class sqlShowRecords(sublime_plugin.WindowCommand):
+    def run(self):
+        def showTableRecords(index):
+            if index > -1:
+                display(getConnection().showRecords(getConnection().tables[index]))
+
+        tables = getConnection().desc()
+        if len(tables) > 0:
+            sublime.active_window().show_quick_panel(tables, showTableRecords)
+        else:
+            displayPanel('There is no table in this database')
+
+class sqlRedo(sublime_plugin.WindowCommand):
+    def run(self):
+        result = getConnection().query(lastQuery())
+        if result != '':
+            display(result)
+        else:
+            displayPanel('Query executed successful')
+
+class sqlQuery(sublime_plugin.WindowCommand):
+    def run(self):
+        def executeQuery(query):
+            result = getConnection().query(query)
+            if result != '':
+                display(result)
+            else:
+                displayPanel('Query executed successful')
+
+        sublime.active_window().show_input_panel('Enter query', lastQuery(), executeQuery, None, None)
+
+class sqlHistory(sublime_plugin.WindowCommand):
+    def run(self):
+        def executeHistoryQuery(index):
+            if index > -1:
+                query = queries()[index]
+                display(query, getConnection().query(query))
+
+        sublime.active_window().show_quick_panel(queries(), executeHistoryQuery)
+
+class sqlClearHistory(sublime_plugin.WindowCommand):
+    def run(self):
+        clearHistory()
